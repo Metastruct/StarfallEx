@@ -119,6 +119,10 @@ function SF.Instance:runWithOps(func, ...)
 		end
 	end
 	
+	-- HACK: Prevent hooks from being removed due to CPU quota.
+	local SAFE = hook.SetSafemode
+	local safemode = SAFE and SAFE(true)
+
 	local prevHook, mask, count = debug.gethook()
 	debug.sethook(cpuCheck, "", 2000)
 	local tbl = { xpcall(func, xpcall_callback, ...) }
@@ -127,7 +131,10 @@ function SF.Instance:runWithOps(func, ...)
 	if tbl[1] then
 		-- Need to put the cpuCheck in a lambda so the debug.getinfo doesn't land inside of xpcall
 		local tbl2 = { xpcall(function() cpuCheck() end, xpcall_callback) }
+		local _ = SAFE and SAFE(safemode)
 		if not tbl2[1] then return tbl2 end
+	else
+		local _ = SAFE and SAFE(safemode)
 	end
 	
 	return tbl
