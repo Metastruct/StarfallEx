@@ -53,11 +53,12 @@ function SF.MakeError (msg, level, uncatchable, prependinfo)
 		info = { short_src = "", currentline = 0 }
 		prependinfo = false
 	end
+	if type(msg) ~= "string" then msg = "(error object is not a string)" end
 	return setmetatable({
 		uncatchable = false,
 		file = info.short_src,
 		line = info.currentline,
-		message = prependinfo and (info.short_src..":"..info.currentline..": "..tostring(msg)) or tostring(msg),
+		message = prependinfo and (info.short_src..":"..info.currentline..": "..msg) or msg,
 		uncatchable = uncatchable,
 		traceback = debug.traceback("", level)
 	}, SF.Errormeta)
@@ -110,32 +111,57 @@ function SF.GetTypeDef(name)
 	return SF.Types[name]
 end
 
---- Checks the type of val. Errors if the types don't match
+--- Checks the starfall type of val. Errors if the types don't match
 -- @param val The value to be checked.
 -- @param typ A string type or metatable.
 -- @param level Level at which to error at. 3 is added to this value. Default is 0.
 -- @param default A value to return if val is nil.
 function SF.CheckType(val, typ, level, default)
 	local meta = dgetmeta(val)
-	if meta == typ or (meta and typemetatables[meta] and meta.__supertypes and meta.__supertypes[typ]) or type(val) == typ then 
+	if meta == typ or (meta and typemetatables[meta] and meta.__supertypes and meta.__supertypes[typ]) then 
 		return val
 	elseif val == nil and default then
 		return default
 	else
 		-- Failed, throw error
+		assert(type(typ) == "table" and typ.__metatable and type(typ.__metatable) == "string")
+
 		level = (level or 0) + 3
-		
-		local typname
-		if type(typ) == "table" then
-			assert(typ.__metatable and type(typ.__metatable) == "string")
-			typname = typ.__metatable
-		else
-			typname = typ
-		end
-		
 		local funcname = debug.getinfo(level-1, "n").name or "<unnamed>"
 		local mt = getmetatable(val)
-		SF.Throw("Type mismatch (Expected " .. typname .. ", got " .. (type(mt) == "string" and mt or type(val)) .. ") in function " .. funcname, level)
+		SF.Throw("Type mismatch (Expected " .. typ.__metatable .. ", got " .. (type(mt) == "string" and mt or type(val)) .. ") in function " .. funcname, level)
+	end
+end
+
+--- Checks the lua type of val. Errors if the types don't match
+-- @param val The value to be checked.
+-- @param typ A string type or metatable.
+-- @param level Level at which to error at. 3 is added to this value. Default is 0.
+-- @param default A value to return if val is nil.
+function SF.CheckLuaType(val, typ, level, default)
+	local valtype = TypeID(val)
+	if valtype==typ then 
+		return val
+	elseif val == nil and default then
+		return default
+	else
+		-- Failed, throw error
+		assert(type(typ) == "number")
+		local typeLookup = {
+			[TYPE_BOOL] = "boolean",
+			[TYPE_FUNCTION] = "function",
+			[TYPE_NIL] = "nil",
+			[TYPE_NUMBER] = "number",
+			[TYPE_STRING] = "string",
+			[TYPE_TABLE] = "table",
+			[TYPE_THREAD] = "thread",
+			[TYPE_USERDATA] = "userdata"
+		}
+
+		level = (level or 0) + 3
+		local funcname = debug.getinfo(level-1, "n").name or "<unnamed>"
+		local mt = getmetatable(val)
+		SF.Throw("Type mismatch (Expected " .. typeLookup[typ] .. ", got " .. (type(mt) == "string" and mt or typeLookup[valtype]) .. ") in function " .. funcname, level)
 	end
 end
 

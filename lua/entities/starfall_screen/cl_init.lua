@@ -15,13 +15,13 @@ net.Receive("starfall_processor_used", function (len)
 	local activator = net.ReadEntity()
 	if not IsValid(chip) then return end
 	if chip.link then chip = chip.link end
-	
+
 	if IsValid(chip) then
-	
+
 		if chip.instance then
 			chip.instance:runScriptHook("starfallused", SF.Entities.Wrap(activator))
 		end
-		
+
 		-- Error message copying
 		if activator == LocalPlayer() then
 			if chip.error and chip.error.message then
@@ -35,19 +35,36 @@ end)
 
 function ENT:Initialize ()
 	self.BaseClass.Initialize(self)
-	
+
 	net.Start("starfall_processor_update_links")
 		net.WriteEntity(self)
 	net.SendToServer()
-	
+
 	local info = self.Monitor_Offsets[self:GetModel()]
+	if not info then
+		local mins = self:OBBMins()
+		local maxs = self:OBBMaxs()
+		local size = maxs-mins
+		info = 	{
+				Name	=	"",
+				RS	= (size.y-1)/512,
+				RatioX	= size.y/size.x,
+				offset	=	self:OBBCenter()+Vector(0,0,maxs.z-0.24),
+				rot	=	Angle(0, 0, 180),
+				x1	=	0,
+				x2	=	0,
+				y1	=	0,
+				y2	=	0,
+				z	=	0,
+			}
+	end
 	if info then
 		local rotation, translation, translation2, scale = Matrix(), Matrix(), Matrix(), Matrix()
 		rotation:SetAngles(info.rot)
 		translation:SetTranslation(info.offset)
 		translation2:SetTranslation(Vector(-256 / info.RatioX, -256, 0))
 		scale:SetScale(Vector(info.RS, info.RS, info.RS))
-		
+
 		self.ScreenMatrix = translation * rotation * scale * translation2
 		self.ScreenInfo = info
 		self.Aspect = info.RatioX
@@ -75,8 +92,9 @@ function ENT:RenderScreen()
 		elseif self.link.error then
 			local error = self.link.error
 			if not error.markup then
-				local msg = error.message
+				local msg = error.message or ""
 				local location = (error.file and error.line) and ("File: " .. error.file .. "\nLine: " .. error.line) or ""
+				msg = msg:sub(1,512)
 				error.markup = markup.Parse("<font=Starfall_ErrorFont><colour=0, 255, 255, 255>Error occurred in Starfall:\n</colour><color=255, 0, 0, 255>"..msg.."\n</color><color=255, 255, 255, 255>"..location.."</color></font>", 512)
 			end
 			surface.SetTexture(0)
@@ -97,7 +115,7 @@ end
 
 function ENT:DrawTranslucent ()
 	self:DrawModel()
-	
+
 	if halo.RenderedEntity() == self or not self.ScreenInfo then return end
 	-- Draw screen here
 	local transform = self:GetBoneMatrix(0) * self.ScreenMatrix

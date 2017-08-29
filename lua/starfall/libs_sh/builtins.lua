@@ -36,7 +36,7 @@ SF.DefaultEnvironment.player = nil
 -- @return entity
 SF.DefaultEnvironment.entity = nil
 
---- Same as Lua's select
+--- Used to select single values from a vararg or get the count of values in it.
 -- @name SF.DefaultEnvironment.select
 -- @class function
 -- @param parameter
@@ -44,20 +44,21 @@ SF.DefaultEnvironment.entity = nil
 -- @return Returns a number or vararg, depending on the select method.
 SF.DefaultEnvironment.select = select
 
---- Same as Lua's tostring
+--- Attempts to convert the value to a string.
 -- @name SF.DefaultEnvironment.tostring
 -- @class function
 -- @param obj
 -- @return obj as string
 SF.DefaultEnvironment.tostring = tostring
---- Same as Lua's tonumber
+
+--- Attempts to convert the value to a number.
 -- @name SF.DefaultEnvironment.tonumber
 -- @class function
 -- @param obj
 -- @return obj as number
 SF.DefaultEnvironment.tonumber = tonumber
 
---- Same as Lua's ipairs
+--- Returns an iterator function for a for loop, to return ordered key-value pairs from a table.
 -- @name SF.DefaultEnvironment.ipairs
 -- @class function
 -- @param tbl Table to iterate over
@@ -66,7 +67,7 @@ SF.DefaultEnvironment.tonumber = tonumber
 -- @return 0 as current index
 SF.DefaultEnvironment.ipairs = ipairs
 
---- Same as Lua's pairs
+--- Returns an iterator function for a for loop that will return the values of the specified table in an arbitrary order.
 -- @name SF.DefaultEnvironment.pairs
 -- @class function
 -- @param tbl Table to iterate over
@@ -75,7 +76,7 @@ SF.DefaultEnvironment.ipairs = ipairs
 -- @return nil as current index
 SF.DefaultEnvironment.pairs = pairs
 
---- Same as Lua's type
+--- Returns a string representing the name of the type of the passed object.
 -- @name SF.DefaultEnvironment.type
 -- @class function
 -- @param obj Object to get type of
@@ -85,7 +86,7 @@ SF.DefaultEnvironment.type = function(obj)
 	return type(tp) == "string" and tp or type(obj)
 end
 
---- Same as Lua's next
+--- Returns the next key and value pair in a table.
 -- @name SF.DefaultEnvironment.next
 -- @class function
 -- @param tbl Table to get the next key-value pair of
@@ -94,21 +95,21 @@ end
 -- @return Value or nil
 SF.DefaultEnvironment.next = next
 
---- Same as Lua's assert.
+--- If the result of the first argument is false or nil, an error is thrown with the second argument as the message.
 -- @name SF.DefaultEnvironment.assert
 -- @class function
 -- @param condition
 -- @param msg
-SF.DefaultEnvironment.assert = function (condition, msg) if not condition then SF.Throw(msg or "assertion failed!", 2) end end
+SF.DefaultEnvironment.assert = function (condition, msg) if not condition then SF.Throw(msg or "assertion failed!", 2) else return condition end end
 
---- Same as Lua's unpack
+--- This function takes a numeric indexed table and return all the members as a vararg.
 -- @name SF.DefaultEnvironment.unpack
 -- @class function
 -- @param tbl
 -- @return Elements of tbl
 SF.DefaultEnvironment.unpack = unpack
 
---- Same as Lua's setmetatable. Doesn't work on most internal metatables
+--- Sets, changes or removes a table's metatable. Doesn't work on most internal metatables
 -- @name SF.DefaultEnvironment.setmetatable
 -- @class function
 -- @param tbl The table to set the metatable of
@@ -116,11 +117,11 @@ SF.DefaultEnvironment.unpack = unpack
 -- @return tbl with metatable set to meta
 SF.DefaultEnvironment.setmetatable = setmetatable
 
---- Same as Lua's getmetatable. Doesn't work on most internal metatables
+--- Returns the metatable of an object. Doesn't work on most internal metatables
 -- @param tbl Table to get metatable of
 -- @return The metatable of tbl
 SF.DefaultEnvironment.getmetatable = function(tbl)
-	SF.CheckType(tbl, "table")
+	SF.CheckLuaType(tbl, TYPE_TABLE)
 	return getmetatable(tbl)
 end
 
@@ -185,7 +186,7 @@ end
 --- Sets a CPU soft quota which will trigger a catchable error if the cpu goes over a certain amount.
 -- @param quota The threshold where the soft error will be thrown. Ratio of current cpu to the max cpu usage. 0.5 is 50% 
 function SF.DefaultEnvironment.setSoftQuota (quota)
-	SF.CheckType(quota, "number")
+	SF.CheckLuaType(quota, TYPE_NUMBER)
 	SF.instance.cpu_softquota = quota
 end
 
@@ -193,7 +194,7 @@ end
 --@param perm The permission id to check
 --@param obj Optional object to pass to the permission system.
 function SF.DefaultEnvironment.hasPermission(perm, obj)
-	SF.CheckType(perm, "string")
+	SF.CheckLuaType(perm, TYPE_STRING)
 	return SF.Permissions.hasAccess(SF.instance.player, SF.UnwrapObject(obj), perm)
 end
 
@@ -329,21 +330,21 @@ function math_methods.bSplinePoint(tDiff, tPoints, tMax)
 	return SF.WrapObject(math.BSplinePoint(tDiff, SF.Unsanitize(tPoints), tMax))
 end
 function math_methods.lerp(percent, from, to)
-	SF.CheckType(percent, "number")
-	SF.CheckType(from, "number")
-	SF.CheckType(to, "number")
+	SF.CheckLuaType(percent, TYPE_NUMBER)
+	SF.CheckLuaType(from, TYPE_NUMBER)
+	SF.CheckLuaType(to, TYPE_NUMBER)
 	
 	return Lerp(percent, from, to)
 end
 function math_methods.lerpAngle(percent, from, to)
-	SF.CheckType(percent, "number")
+	SF.CheckLuaType(percent, TYPE_NUMBER)
 	SF.CheckType(from, SF.Types["Angle"])
 	SF.CheckType(to, SF.Types["Angle"])
 	
 	return SF.WrapObject(LerpAngle(percent, SF.UnwrapObject(from), SF.UnwrapObject(to)))
 end
 function math_methods.lerpVector(percent, from, to)
-	SF.CheckType(percent, "number")
+	SF.CheckLuaType(percent, TYPE_NUMBER)
 	SF.CheckType(from, SF.Types["Vector"])
 	SF.CheckType(to, SF.Types["Vector"])
 	
@@ -443,7 +444,7 @@ end
 --@param key The index of the table
 --@param value The value to set the index equal to
 function SF.DefaultEnvironment.rawset(table, key, value)
-    SF.CheckType(table, "table")
+    SF.CheckLuaType(table, TYPE_TABLE)
 
     rawset(table, key, value)
 end
@@ -453,7 +454,7 @@ end
 --@param key The index of the table
 --@return The value of the index
 function SF.DefaultEnvironment.rawget(table, key, value)
-    SF.CheckType(table, "table")
+    SF.CheckLuaType(table, TYPE_TABLE)
 
     return rawget(table, key)
 end
@@ -518,7 +519,7 @@ if SERVER then
 	--- Prints a table to player's chat
 	-- @param tbl Table to print
 	function SF.DefaultEnvironment.printTable (tbl)
-		SF.CheckType(tbl, "table")
+		SF.CheckLuaType(tbl, TYPE_TABLE)
 		printTableX(tbl, 0, { tbl = true })
 	end
 
@@ -526,7 +527,7 @@ if SERVER then
 	-- @shared
 	-- @param cmd Command to execute
 	function SF.DefaultEnvironment.concmd (cmd)
-		SF.CheckType(cmd, "string")
+		SF.CheckLuaType(cmd, TYPE_STRING)
 		SF.Permissions.check(SF.instance.player, nil, "console.command")
 		SF.instance.player:ConCommand(cmd)
 	end
@@ -535,7 +536,7 @@ if SERVER then
 	-- @server
 	-- @param str String data
 	function SF.DefaultEnvironment.setUserdata(str)
-		SF.CheckType(str, "string")
+		SF.CheckLuaType(str, TYPE_STRING)
 		if #str>1048576 then SF.Throw("The userdata limit is 1MiB", 2) end
 		SF.instance.data.userdata = str
 	end
@@ -551,7 +552,7 @@ else
 	-- @client
 	-- @param name Name
 	function SF.DefaultEnvironment.setName(name)
-		SF.CheckType(name, "string")
+		SF.CheckLuaType(name, TYPE_STRING)
 		local e = SF.instance.data.entity
 		if IsValid(e) then
 			e.name = string.sub(name, 1, 256)
@@ -562,7 +563,7 @@ else
 	-- @param txt Text to set to the clipboard
 	function SF.DefaultEnvironment.setClipboardText(txt)
 		if SF.instance.player ~= LocalPlayer() then return end
-		SF.CheckType(txt, "string")
+		SF.CheckLuaType(txt, TYPE_STRING)
 		SetClipboardText(txt)
 	end
 
@@ -571,7 +572,7 @@ else
 	-- @param text The message text.
 	function SF.DefaultEnvironment.printMessage(mtype, text)
 		if SF.instance.player ~= LocalPlayer() then return end
-		SF.CheckType(text, "string")
+		SF.CheckLuaType(text, TYPE_STRING)
 		SF.instance.player:PrintMessage(mtype, text)
 	end
 
@@ -582,14 +583,14 @@ else
 	end
 
 	function SF.DefaultEnvironment.printTable (tbl)
-		SF.CheckType(tbl, "table")
+		SF.CheckLuaType(tbl, TYPE_TABLE)
 		if SF.instance.player == LocalPlayer() then
 			printTableX(tbl, 0, { tbl = true })
 		end
 	end
 
 	function SF.DefaultEnvironment.concmd (cmd)
-		SF.CheckType(cmd, "string")
+		SF.CheckLuaType(cmd, TYPE_STRING)
 		SF.Permissions.check(SF.instance.player, nil, "console.command")
 		LocalPlayer():ConCommand(cmd)
 	end
@@ -618,7 +619,7 @@ end
 -- @param file The file to include. Make sure to --@include it
 -- @return Return value of the script
 function SF.DefaultEnvironment.require(file)
-	SF.CheckType(file, "string")
+	SF.CheckLuaType(file, TYPE_STRING)
 	local loaded = SF.instance.data.reqloaded
 	if not loaded then
 		loaded = {}
@@ -652,8 +653,8 @@ end
 -- @param loadpriority Table of files that should be loaded before any others in the directory
 -- @return Table of return values of the scripts
 function SF.DefaultEnvironment.requiredir(dir, loadpriority)
-	SF.CheckType(dir, "string")
-	if loadpriority then SF.CheckType(loadpriority, "table") end
+	SF.CheckLuaType(dir, TYPE_STRING)
+	if loadpriority then SF.CheckLuaType(loadpriority, TYPE_TABLE) end
 	
 	local returns = {}
 
@@ -681,7 +682,7 @@ end
 -- @param file The file to include. Make sure to --@include it
 -- @return Return value of the script
 function SF.DefaultEnvironment.dofile(file)
-	SF.CheckType(file, "string")
+	SF.CheckLuaType(file, TYPE_STRING)
 	local path
 	if string.sub(file, 1, 1)=="/" then
 		path = SF.NormalizePath(file)
@@ -701,8 +702,8 @@ end
 -- @param loadpriority Table of files that should be loaded before any others in the directory
 -- @return Table of return values of the scripts
 function SF.DefaultEnvironment.dodir(dir, loadpriority)
-	SF.CheckType(dir, "string")
-	if loadpriority then SF.CheckType(loadpriority, "table") end
+	SF.CheckLuaType(dir, TYPE_STRING)
+	if loadpriority then SF.CheckLuaType(loadpriority, TYPE_TABLE) end
 
 	local returns = {}
 
@@ -767,7 +768,7 @@ end
 function SF.DefaultEnvironment.debugGetInfo (funcOrStackLevel, fields)
 	local TfuncOrStackLevel = type(funcOrStackLevel)
 	if TfuncOrStackLevel~="function" and TfuncOrStackLevel~="number" then SF.Throw("Type mismatch (Expected function or number, got " .. TfuncOrStackLevel .. ") in function debugGetInfo", 2) end
-	if fields then SF.CheckType(fields, "string") end
+	if fields then SF.CheckLuaType(fields, TYPE_STRING) end
 	
 	local ret = debug.getinfo(funcOrStackLevel, fields)
 	if ret then
@@ -775,6 +776,11 @@ function SF.DefaultEnvironment.debugGetInfo (funcOrStackLevel, fields)
 		return ret
 	end
 end
+
+local uncatchable = {
+	["not enough memory"] = true,
+	["stack overflow"] = true
+}
 
 --- Lua's pcall with SF throw implementation
 -- Calls a function and catches an error that can be thrown while the execution of the call.
@@ -792,7 +798,7 @@ function SF.DefaultEnvironment.pcall (func, ...)
 		if err.uncatchable then
 			error(err)
 		end
-	elseif err == "not enough memory" then
+	elseif uncatchable[err] then
 		SF.Throw(err, 2, true)
 	end
 	
@@ -817,7 +823,7 @@ function SF.DefaultEnvironment.xpcall (func, callback, ...)
 		if err.uncatchable then
 			error(err)
 		end
-	elseif err == "not enough memory" then
+	elseif uncatchable[err] then
 		SF.Throw(err, 2, true)
 	end
 	
@@ -837,7 +843,7 @@ function SF.DefaultEnvironment.try (func, catch)
 		if err.uncatchable then
 			error(err)
 		end
-	elseif err == "not enough memory" then
+	elseif uncatchable[err] then
 		SF.Throw(err, 2, true)
 	end
 	if catch then catch(err) end

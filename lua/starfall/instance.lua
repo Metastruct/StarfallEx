@@ -109,6 +109,8 @@ function SF.Instance:runWithOps(func, ...)
 			local source = debug.getinfo(3, "S").short_src
 			if string.find(source, "SF:", 1, true) or string.find(source, "starfall", 1, true) then
 				SF.Throw(msg, 3, nocatch)
+			else
+				debug.sethook(cpuCheck, "", 1)
 			end
 		end
 		
@@ -129,10 +131,16 @@ function SF.Instance:runWithOps(func, ...)
 	debug.sethook(prevHook, mask, count)
 	
 	if tbl[1] then
-		-- Need to put the cpuCheck in a lambda so the debug.getinfo doesn't land inside of xpcall
-		local tbl2 = { xpcall(function() cpuCheck() end, xpcall_callback) }
 		local _ = SAFE and SAFE(safemode)
 		if not tbl2[1] then return tbl2 end
+		--Do another cpu check in case the debug hook wasn't called
+		self.cpu_total = SysTime() - oldSysTime
+		local usedRatio = self:movingCPUAverage() / self.cpuQuota
+		if usedRatio>1 then
+			return {false, SF.MakeError("CPU Quota exceeded.", 1, true, true)}
+		elseif usedRatio > self.cpu_softquota then
+			return {false, SF.MakeError("CPU Quota warning.", 1, false, true)}
+		end
 	else
 		local _ = SAFE and SAFE(safemode)
 	end
@@ -148,13 +156,15 @@ function SF.Instance:prepare(hook)
 	if self.error then return true end
 	
 	if SF.instance ~= nil then
-		self.instanceStack = self.instanceStack or {}
-		self.instanceStack[#self.instanceStack + 1] = SF.instance
-		SF.instance = nil
+		if self.instanceStack then
+			self.instanceStack[#self.instanceStack + 1] = SF.instance
+		else
+			self.instanceStack = {SF.instance}
+		end
 	end
 	
-	self:runLibraryHook("prepare", hook)
 	SF.instance = self
+	self:runLibraryHook("prepare", hook)
 end
 
 --- Internal function - Do not call. Cleans up the script.
@@ -271,7 +281,7 @@ end
 -- @param func Function to run
 -- @param ... Arguments to pass to func
 function SF.Instance:runFunction(func, ...)
-	if self:prepare("_runFunction") then return true end
+	if self:prepare("_runFunction") then return {} end
 	
 	local tbl = self:runWithOps(func, ...)
 	if tbl[1] then
@@ -339,14 +349,13 @@ end
 
 --- Errors the instance. Should only be called from the tips of the call tree (aka from places such as the hook library, timer library, the entity's think function, etc)
 function SF.Instance:Error(err)
-	
+	if self.error then return end
 	if self.runOnError then -- We have a custom error function, use that instead
 		self:runOnError(err)
 	else
 		-- Default behavior
 		self:deinitialize()
 	end
-	
 end
 
 -- Don't self modify. The average should only the modified per tick.
