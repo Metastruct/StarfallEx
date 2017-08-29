@@ -23,7 +23,11 @@ P.checks = {
 		return LocalPlayer()==principal
 	end,
 	function(principal, target, key)
-		return LocalPlayer()==principal or (IsValid(principal) and principal:GetFriendStatus()=="friend")
+		local me = LocalPlayer()
+		if me==principal then return true end
+		if not IsValid(principal) then return false end
+		if me.IsFriend then return me:IsFriend(principal) end
+		return principal:GetFriendStatus()=="friend"
 	end,
 	function() return true end,
 	function() return false end
