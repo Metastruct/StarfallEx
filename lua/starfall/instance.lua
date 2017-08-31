@@ -121,20 +121,22 @@ function SF.Instance:runWithOps(func, ...)
 		end
 	end
 	
+	-- HACK: Prevent hooks from being removed due to CPU quota.
+	local SAFE = hook.SetSafemode
+	local safemode = SAFE and SAFE(true)
+
 	local prevHook, mask, count = debug.gethook()
 	debug.sethook(cpuCheck, "", 2000)
 	local tbl = { xpcall(func, xpcall_callback, ...) }
 	debug.sethook(prevHook, mask, count)
 	
 	if tbl[1] then
-		--Do another cpu check in case the debug hook wasn't called
-		self.cpu_total = SysTime() - oldSysTime
-		local usedRatio = self:movingCPUAverage() / self.cpuQuota
-		if usedRatio>1 then
-			return {false, SF.MakeError("CPU Quota exceeded.", 1, true, true)}
-		elseif usedRatio > self.cpu_softquota then
-			return {false, SF.MakeError("CPU Quota warning.", 1, false, true)}
-		end
+		-- Need to put the cpuCheck in a lambda so the debug.getinfo doesn't land inside of xpcall
+		local tbl2 = { xpcall(function() cpuCheck() end, xpcall_callback) }
+		local _ = SAFE and SAFE(safemode)
+		if not tbl2[1] then return tbl2 end
+	else
+		local _ = SAFE and SAFE(safemode)
 	end
 	
 	return tbl
