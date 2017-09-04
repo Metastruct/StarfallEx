@@ -518,10 +518,9 @@ end
 
 local viewmatrix_checktypes =
 {
-	x = "number", y = "number", w = "number", h = "number", type = "string",
-	origin = SF.Vectors.Metatable, angles = SF.Angles.Metatable, fov = "number",
-	aspect = "number", zfar = "number", znear = "number", subrect = "boolean",
-	bloomtone = "boolean", offcenter = "table", ortho = "table"
+	x = TYPE_NUMBER, y = TYPE_NUMBER, w = TYPE_NUMBER, h = TYPE_NUMBER, type = TYPE_STRING,
+	fov = TYPE_NUMBER, aspect = TYPE_NUMBER, zfar = TYPE_NUMBER, znear = TYPE_NUMBER, subrect = TYPE_BOOL,
+	bloomtone = TYPE_BOOL, offcenter = TYPE_TABLE, ortho = TYPE_TABLE
 }
 --- Pushes a perspective matrix onto the view matrix stack.
 -- @param tbl The view matrix data. See http://wiki.garrysmod.com/page/Structures/RenderCamData
@@ -539,9 +538,13 @@ function render_library.pushViewMatrix(tbl)
 	end
 
 	local newtbl = {}
+	if tbl.origin ~= nil then SF.CheckType( tbl.origin, SF.Vectors.Metatable ) newtbl.origin = tbl.origin tbl.origin = nil end
+	if tbl.angles ~= nil then SF.CheckType( tbl.angles, SF.Angles.Metatable ) newtbl.angles = tbl.angles tbl.angles = nil end
+
 	for k, v in pairs(tbl) do
-		if viewmatrix_checktypes[k] then
-			SF.CheckType(v, viewmatrix_checktypes[k])
+		local check = viewmatrix_checktypes[k]
+		if check then
+			SF.CheckLuaType(v, check)
 			newtbl[k] = v
 		else
 			SF.Throw("Invalid key found in view matrix: " .. k, 2)
@@ -643,9 +646,11 @@ function render_library.getTextureID (tx, cb, alignment, skip_hack)
 	if prefix=="http" or prefix=="https" or prefix == "data" then
 		if prefix=="http" or prefix=="https" then
 			SF.Permissions.check(instance.player, nil, "render.urlmaterial")
+			if #tx>2000 then SF.Throw("URL is too long!", 2) end
 			tx = string.gsub(tx, "[^%w _~%.%-/:]", function(str)
 				return string.format("%%%02X", string.byte(str))
 			end)
+			SF.HTTPNotify(instance.player, tx)
 		else
 			SF.Permissions.check(instance.player, nil, "render.datamaterial")
 			tx = string.match(tx, "data:image/[%w%+]+;base64,[%w/%+%=]+") -- No $ at end etc so there can be cariage return etc, we'll skip that part anyway
