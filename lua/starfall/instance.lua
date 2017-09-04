@@ -132,7 +132,6 @@ function SF.Instance:runWithOps(func, ...)
 	
 	if tbl[1] then
 		local _ = SAFE and SAFE(safemode)
-		if not tbl2[1] then return tbl2 end
 		--Do another cpu check in case the debug hook wasn't called
 		self.cpu_total = SysTime() - oldSysTime
 		local usedRatio = self:movingCPUAverage() / self.cpuQuota
